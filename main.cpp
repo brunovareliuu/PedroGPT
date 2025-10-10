@@ -7,7 +7,6 @@
 
 using namespace std;
 
-// Hacemos un struct para lo que viene siendo nuestro .txt y que luego podamos manejar todo correcetamente y no tener que estar haciendo mil cosas raras
 struct Bitacora{
 	string mes;
     int dia;
@@ -39,28 +38,31 @@ int ordenar_meses(const string& mes) {
     if (mes == "Dec") return 12;
     return 0; // En caso de que no sea un mes valido
 }
+// FUNCIÓN AUXILIAR: Compara dos registros de Bitacora.
+// Devuelve 'true' si el registro 'a' debe ir antes que el 'b'. esto sera para el merge y que este sea mas sencillo
+bool compararFechas(const Bitacora& a, const Bitacora& b) {
+    int mesA = ordenar_meses(a.mes);
+    int mesB = ordenar_meses(b.mes);
 
-// Funcion para ordernar, donde vamos a comparar cual es el mas viejo comparando uno con el otro
-// Esto es un bool, donde vamos a retornar como que uno es mas grande que el otro, donde si es falso, entonces sabemos que a es mas
-// viejo que b. pero si es verdadero, sabremos que b es mas viejo que a
-// Esto lo hacemos varias veces por si los meses, dias, horas, minutos o segundos son iguales, pero ya si los dos exactamente iguales pues
-// sera falso como quiera y uno se iria arriba y otro abajo
-bool comparar(const Bitacora& a, const Bitacora& b){
-    if (a.mes != b.mes){
-        return ordenar_meses(a.mes) < ordenar_meses(b.mes);
-    }
-    if (a.dia != b.dia){
-        return a.dia < b.dia;
-    }
-    if (a.hora != b.hora){
-        return a.hora < b.hora;
-    }
-    if (a.minuto != b.minuto){
-        return a.minuto < b.minuto;
-    }
-    return a.segundo < b.segundo;
+    if (mesA < mesB) return true;
+    if (mesA > mesB) return false;
+
+    if (a.dia < b.dia) return true;
+    if (a.dia > b.dia) return false;
+
+    if (a.hora < b.hora) return true;
+    if (a.hora > b.hora) return false;
+
+    if (a.minuto < b.minuto) return true;
+    if (a.minuto > b.minuto) return false;
+    
+    if (a.segundo <= b.segundo) return true;
+    if (a.segundo > b.segundo) return false;
+
+    return true; 
 }
 
+// Funcion para guardar las fechas de inicio con lo que nos diga el usuario
 Bitacora pedir_fecha(const string& mensaje){
     Bitacora fecha;
     string mes_str;
@@ -88,35 +90,131 @@ Bitacora pedir_fecha(const string& mensaje){
 
 }
 
-// Aqui en vez de lo que viene siendo una busqueda, lo hicimos pero de dirferente forma, donde hizimos una funcion que usamos comparar para ver si b es mayor.
-// Lo que le cambiamos, es que si son iguales pues los dos son iguales, y son iguales y asi. Pero esto tiene mas sentido en el for del main, ahi se explica mas a fondo
-bool anterior_igual(const Bitacora& a, const Bitacora& b){
-    // Esto es como algo que vamos a ver usa la misma logica si una es mas grande que otra, donde si es mas grande pues devolvemos true si b es mas grande, pero si son del mismo tamaño
-    if (comparar(a,b)){
-        return true;
+// Para lo que viene siendo estas funciones binarias queremos devolver el indice para que sea mas facil al momentod e ponerlo en el ofstream
+// Funcion de busqueda BINARIA para el inicio
+int busquedaBinariaInicio(Bitacora arrBitacora[], int n, Bitacora fechaBuscada) {
+    int start = 0;
+    int end = n - 1;
+    int resultado = -1;
+
+    while (start <= end) {
+        int mid = start + (end - start) / 2;
+        // Esta condición es como preguntar: "fechaBuscada es <= arrBitacora[mid]?"
+        // Es decir, ¿la fecha en mid ya es la que buscamos o una posterior?
+        if (compararFechas(fechaBuscada, arrBitacora[mid])) { 
+            resultado = mid; // Es un resultado válido, lo guardamos.
+            end = mid - 1;   // Ahora buscamos si hay otro resultado válido más a la izquierda (repetidos).
+        } else {
+            // Si la fecha en 'mid' es muy temprana, debemos buscar a la derecha.
+            start = mid + 1;
+        }
     }
-    return (ordenar_meses(a.mes) == ordenar_meses(b.mes) && a.dia == b.dia && a.hora == b.hora && a.minuto == b.minuto && a.segundo == b.segundo);
+    return resultado;
 }
 
+// Funcion de busqueda BINARIA para el inicio
+int busquedaBinariaFin(Bitacora arrBitacora[], int n, Bitacora fechaBuscada) {
+    int start = 0;
+    int end = n - 1;
+    int resultado = -1;
+
+    while (start <= end) {
+        int mid = start + (end - start) / 2;
+
+        if (compararFechas(arrBitacora[mid], fechaBuscada)) {
+            resultado = mid;  // Este es un posible resultado
+            start = mid + 1;  // Pero intentamos encontrar uno después (más a la derecha)
+        } else {
+            // Si la fecha en mid es mayor, buscamos a la izquierda
+            end = mid - 1;
+        }
+    }
+    return resultado;
+}
+
+// Funcion para hacer el merge
+void merge(Bitacora arrBitacora[], int start, int mid, int end) {
+    int n1 = mid - start + 1;
+    int n2 = end - mid;
+
+    // crear arreglos temporales del tipo bitacora con el new
+    // Los apuntadores es porque los arreglos en funciones actuan de una forma diferente
+    Bitacora* arregloIzq = new Bitacora[n1];
+    Bitacora* arregloDer = new Bitacora[n2];
+
+    // Aqui separamos el arreglo
+    for (int i = 0; i < n1; i++) {
+        arregloIzq[i] = arrBitacora[start + i];
+    }
+    for (int j = 0; j < n2; j++) {
+        arregloDer[j] = arrBitacora[mid + 1 + j];
+    }
+
+    int i = 0;
+    int j = 0; 
+    int k = start;
+
+    // Bucle principal para fusionar de vuelta en el arreglo original
+    while (i < n1 && j < n2) {
+        // usamos la funcion de compararFechas para no tener un codigo tan robusto aqui
+        if (compararFechas(arregloIzq[i], arregloDer[j])) {
+            arrBitacora[k] = arregloIzq[i];
+            i++;
+        } else {
+            arrBitacora[k] = arregloDer[j];
+            j++;
+        }
+        k++;
+    }
+
+    // copia los elementos restantes de cada arreglo, ya que siempre quedara
+    while (i < n1) {
+        arrBitacora[k] = arregloIzq[i];
+        i++;
+        k++;
+    }
+    while (j < n2) {
+        arrBitacora[k] = arregloDer[j];
+        j++;
+        k++;
+    }
+    
+    // liberamos la memoria y asi, para que no pete el sistema con tantos arreglos temporales
+    delete[] arregloIzq;
+    delete[] arregloDer;
+}
+
+// Ahora si haremos la funcion para usar la del merge, para que haga el sort
+
+void mergeSort(Bitacora arrBitacora[], int start, int end){
+    if (start >= end){
+        return; // Esto se refiere a que si el start es igual o mayor que el end, pues ya esta todo bien, asi que no hace falta intentar el codigo
+    }
+    // vamos a encontrar el punto medio aqui dle arreglo
+    int mid = start + (end - start) / 2;
+    // Volvemos a llamar a la funcion pero pues ahora lo haremos con lo que viene siendo los dos bloques que tenemos
+    mergeSort(arrBitacora, start, mid);
+    mergeSort(arrBitacora, mid + 1, end);
+    
+    // como todo esto es recursivo, pues siempre lo ira acomodando y siempre se ira haciendo mas y mas pequeño y asi. y terminamos
+    merge(arrBitacora, start, mid, end);
+}
+
+
 int main(void) {
-    cout << "Bienvenido a nuestro programa!" << endl;
+    //Size de la bitacora como constante para que nadie lo pueda cambiar despues y asi
+    const int tamBitacora = 16807;
 
+    Bitacora arrBitacora[tamBitacora];
+    int contador = 0;
 
-    // Ponemos lo que viene siendo nuestra struct en un vector, el cual es vecBitacora
-    vector<Bitacora> vecBitacora;
-
-    // Esto lo que hace es crear un objeto el cual con input file stream vamos a abrir como el archivo ahi
     ifstream archivo;
-    // Ahi literal ya tenemos el objeto que puede abrir objetos, por lo que solo abrimos la bitacora y asi
     archivo.open("bitacora.txt");
-
-    // Hacemos esta variable para poder tener los datos en diferentes lineas de estas
     string linea;
 
-    while(getline(archivo, linea)){
+    while(getline(archivo, linea) && contador < tamBitacora){
         // Hacemos un objeto de tipo Bitacora para poder guardar los datos ahi
         Bitacora entrada;
-
         // Hacemos un stringstream, que es como una linea string que le puedes meter de todo para poder separar los datos que vienen en la linea
         stringstream ss(linea);
         
@@ -147,68 +245,61 @@ int main(void) {
         // Ahora lo que queda es el puerto, el cual lo guardamos como antes lo habiamos estado haciendo
         direccion_ss >> entrada.puerto;
 
-        // Ahora que ya tenemos todo lo que viene siendo la entrada, lo que hacemos es pushearla al vector, y ya tenemos todo en un vector
-        vecBitacora.push_back(entrada);
+        // Aqui ponemos toda nuestra entrada en nuestro arreglo, que entrada es como nuestro objeto de tipo bitacora
+        arrBitacora[contador] = entrada;
+
+        // Sumamos con el contador
+        contador ++;
     }
+
     archivo.close(); // Cerramos
+    
+    // Vamos a acomodar todo ahora, vamos a ello
 
+    mergeSort(arrBitacora, 0, contador - 1);
+    // Ahora pues tenemos que ver que show con lo que viene siendo la busqueda
+    // Para esto primero vamos a pedir la fecha, y con la fecha vamos a buscar la fecha y ver que show con los duplicados
+    
+    cout << "###### Bienvenido al Programa ######" << endl;
+    cout << endl;
 
-    // Aquí con una funcion que se investigo llamada sort, podemos usar lo que viene siendo nuestra funcion de comparar entre los meses
-    // para poder ordenar todo el vector y asi, lesssgoooo
-
-    // Como trabajamos con vectores, lo que hace sort es que con dos rangos, osea begin y end ejecuta la funcion de comparar y asi
-    sort(vecBitacora.begin(), vecBitacora.end(), comparar);
-
-    cout << "Bienvenido a la App" << endl;
     cout << "Porfavor elige una fecha de inicio" << endl;
-    Bitacora fecha_inicio = pedir_fecha("------Fecha de inicio------");
+    Bitacora fecha_inicio = pedir_fecha("------Fecha de inicio------"); 
+    
+    cout << endl;
+    
     cout << "Porfavor elige una fecha de fin" << endl;
     Bitacora fecha_fin = pedir_fecha("------Fecha de fin------");
-
-    // Ponemos estos valores para usarlos despues para si uno es igual, pues comparar el tiempo tambien
-    fecha_fin.hora = 23; 
-    fecha_fin.minuto = 59;
-    fecha_fin.segundo = 59; 
-
-    cout << "Mostrando entradas entre " << fecha_inicio.mes << " " << fecha_inicio.dia << " a " << fecha_fin.mes << " " << fecha_fin.dia << endl;
-    // Empezamos la cuenta!
-    int count = 0;
-
-    // Hacemos un vector sin nada pero que sea de tipo bitacora para guardar los que vamos a estar imprimiendo en el documento
-    vector<Bitacora> resultados_busqueda;
-    // Iniciamos un for para recorrer todo el vector, desde 0 al vector size
-    for (int i = 0; i < vecBitacora.size(); ++i) {
-
-        // Iniciamos lo que viene siendo nuestro objeto de tipo Bitacora, el cual sera el que vamos a estar comparando y lo llamaos registro
-        Bitacora registro = vecBitacora[i];
-        
-        // Aqui queremos buscar que la fecha de inicio sea menor, ya que estamos buscando descartar lo que viene siendo que estaba antes de la fecha de inicio
-        bool despues_de_inicio = anterior_igual(fecha_inicio, registro); 
-        // Aqui buscamos lo contrario, que la fecha de fin sea mayor, para descartar lo que estaba despues de la fecha de fin
-        bool antes_de_fin = anterior_igual(registro, fecha_fin);
-
-        // Aqui si los dos son verdaderos, osea que la fecha de inicio es menor y la fecha de fin es mayor, entonces si lo imprimimos y asi
-        if (despues_de_inicio && antes_de_fin) {
-            resultados_busqueda.push_back(registro); 
-            count++;
-        }
-    }
-
-    // Ahora lo ponemos en lo que viene siendo el vector de resultados de busqueda
-
+    
+    // Empezamos la busqueda con nuestras funciones
+    int indiceInicial = busquedaBinariaInicio(arrBitacora, contador, fecha_inicio);
+    int indiceFinal = busquedaBinariaFin(arrBitacora, contador, fecha_fin);
+    
+    // Pues ya tenemos todo, ahora lo que haremos es ponerlo en un archivo
     ofstream archivo_salida("bitacora_ordenada_al_gusto.txt");
+    
+    int contador_impresos = 0;
+    // si el archivo no se a cerrado
     if(archivo_salida.is_open()){
-        for (int i = 0; i < resultados_busqueda.size(); ++i){
-            Bitacora registro = resultados_busqueda[i];
-            archivo_salida << registro.mes << " " << registro.dia << " " << registro.hora << ":" << registro.minuto << ":" << registro.segundo
-                            << " " << registro.ip << ":" << registro.puerto << " " << registro.motivo << endl;
+        // vamos de inicio a fin
+        for(int i = indiceInicial; i < indiceFinal; i++){
+            archivo_salida << arrBitacora[i].mes << " " << arrBitacora[i].dia << " " 
+                    << arrBitacora[i].hora << ":" << arrBitacora[i].minuto << ":" << arrBitacora[i].segundo << " "
+                    << arrBitacora[i].ip << ":" << arrBitacora[i].puerto
+                    << arrBitacora[i].motivo << endl;
+            contador_impresos ++;
         }
         archivo_salida.close();
     }
-
-    cout << "-----------------------------\n";
-    cout << "Total de registros encontrados: " << resultados_busqueda.size() << endl;
+    cout << endl;
+    cout << "Total de registros encontrados: " << contador_impresos << endl;
+    
+    cout << endl;
     cout << "Una lista con esos datos ya fue mostrada en un archivo llamada bitacora_ordenada_al_gusto.txt" << endl;
-    cout << "Adios!" << endl;
+    
+    cout << endl;
+    cout << "###### Se cerro este Programa ######" << endl;
+    
+    
     return 0;
 }
