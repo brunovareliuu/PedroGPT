@@ -1,5 +1,4 @@
-#include <iostream> 
-#include <vector>   
+#include <iostream>    
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -55,7 +54,6 @@ bool compararFechas(const Bitacora& a, const Bitacora& b) {
 
     if (a.minuto < b.minuto) return true;
     if (a.minuto > b.minuto) return false;
-    
     if (a.segundo <= b.segundo) return true;
     if (a.segundo > b.segundo) return false;
 
@@ -271,6 +269,11 @@ int main(void) {
     cout << "Porfavor elige una fecha de fin" << endl;
     Bitacora fecha_fin = pedir_fecha("------Fecha de fin------");
     
+    // Esto para que en el ultimo dia tambien se vea y asi
+    fecha_fin.hora = 23;
+    fecha_fin.minuto = 59;
+    fecha_fin.segundo = 59;
+
     // Empezamos la busqueda con nuestras funciones
     int indiceInicial = busquedaBinariaInicio(arrBitacora, contador, fecha_inicio);
     int indiceFinal = busquedaBinariaFin(arrBitacora, contador, fecha_fin);
@@ -282,7 +285,7 @@ int main(void) {
     // si el archivo no se a cerrado
     if(archivo_salida.is_open()){
         // vamos de inicio a fin
-        for(int i = indiceInicial; i < indiceFinal; i++){
+        for(int i = indiceInicial; i <= indiceFinal; i++){
             archivo_salida << arrBitacora[i].mes << " " << arrBitacora[i].dia << " " 
                     << arrBitacora[i].hora << ":" << arrBitacora[i].minuto << ":" << arrBitacora[i].segundo << " "
                     << arrBitacora[i].ip << ":" << arrBitacora[i].puerto
