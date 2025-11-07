@@ -302,7 +302,63 @@ int main(void) {
     
     cout << endl;
     cout << "###### Se cerro este Programa ######" << endl;
+
+    // AQUI EMPIEZA EL SEGUNDO ENTREGABLE
+    // COMO TENEMOS LOS DATOS ENCONTRADOS Y ORDENADOS EN UN ARCHIVO .TXT PRIMERO HAREMOS LO QUE HICIMOS LA ANTERIOR VEZ
+    // QUE FUE EN SI HACER UN WHILE Y PONER TODO EN UNA STRUCTU CON EL ARCHIVO ORIGINAL, PERO AHORA LO HAREMOS CON EL ARCHIVO
+    // QUE SE GENERO COMO RESULTADO DE LA BUSQUEDA Y ASI
     
-    
+    // PARA EL SIZE VAMOS A USAR EL contador_impresos que ya teniamos, asi que no hay problema
+    const int tamBitacora2 = contador_impresos;
+
+    Bitacora arrBitacora2[tamBitacora2];
+    int contador2 = 0;
+
+    ifstream archivo2;
+    archivo2.open("bitacora_ordenada_al_gusto.txt");
+    string linea2;
+
+    while(getline(archivo2, linea2) && contador2 < tamBitacora2){
+        // Hacemos un objeto de tipo Bitacora para poder guardar los datos ahi
+        Bitacora entrada2;
+        // Hacemos un stringstream, que es como una linea string que le puedes meter de todo para poder separar los datos que vienen en la linea
+        stringstream ss(linea2);
+        
+        string hora_completa2;
+        string direccion_completa2;
+
+        ss >> entrada2.mes;
+        ss >> entrada2.dia;
+        ss >> hora_completa2;
+        ss >> direccion_completa2;
+        // El getline lo que hace es leer hasta el final de la linea, por lo que lo que queda es el motivo
+        getline(ss, entrada2.motivo);
+
+        // Ahora tenemos que separar la hora completa en hora, minuto y segundo, lo que se hizo fue en si usar otros stringstreams
+        // pero con lo que se guardo en la hora completa, es como lo anterior pero anteriormente lo hicimos con lo que se habia guardado
+        // en la Bitacora
+        stringstream hora_ss2(hora_completa2);
+        hora_ss2 >> entrada2.hora;
+        hora_ss2.ignore(); // Ignoramos los dos puntos
+        hora_ss2 >> entrada2.minuto;
+        hora_ss2.ignore(); // Ignoramos los dos puntos
+        hora_ss2 >> entrada2.segundo;
+
+        // Ahora tenemos que separar la direccion completa en ip y puerto, donde hacemos lo mismo que con lo que viene siendo lo de la hora completa
+        stringstream direccion_ss2(direccion_completa2);
+        // Aqui en vez de muchas veces le decimos a get line donde buscar, despues donde lo guardara y al final hasta donde terminara
+        getline(direccion_ss2, entrada2.ip, ':'); // Leemos hasta el caracter ':'
+        // Ahora lo que queda es el puerto, el cual lo guardamos como antes lo habiamos estado haciendo
+        direccion_ss2 >> entrada2.puerto;
+
+        // Aqui ponemos toda nuestra entrada en nuestro arreglo, que entrada es como nuestro objeto de tipo bitacora
+        arrBitacora2[contador2] = entrada2;
+
+        // Sumamos con el contador
+        contador2 ++;
+    }
+
+    archivo2.close();
+
     return 0;
 }
