@@ -19,6 +19,26 @@ struct Bitacora{
     string motivo;
 };
 
+// Nodo para la lista ligada de IPs por puerto
+struct IpNode {
+    string ip;       // DireccionIP
+    IpNode* next;    // Puntero al siguiente nodo en la lista
+};
+
+// Nodo del arbol binario de busqueda (BST)
+struct NodoBST {
+    int puerto;        // Llave: numero del puerto
+    IpNode* ipList;    // Cabeza de la lista ligada de IPs para este puerto
+    NodoBST* left;     // Subarbol izquierdo
+    NodoBST* right;    // Subarbol derecho
+};
+
+// Estructura auxiliar para almacenar datos de puertos top
+struct TopPuerto {
+    int puerto;    // Numero del puerto
+    int numIps;    // Cantidad de Ips asociadas
+};
+
 // Funciones auxiliares
 
 // Funcion para ordernar los meses, donde en si solo ponemos por orden y ya, not big deal
@@ -198,6 +218,113 @@ void mergeSort(Bitacora arrBitacora[], int start, int end){
     merge(arrBitacora, start, mid, end);
 }
 
+// Funcion para insertar un puerto e IP en el BST
+// Si el puerto ya existe, agrega la IP a la lista ligada
+void insertar(NodoBST*& raiz, int puerto, string ip) {
+    if (raiz == nullptr) {
+        // Crear nuevo nodo en el BST
+        raiz = new NodoBST;
+        raiz->puerto = puerto;
+        raiz->ipList = new IpNode{ip, nullptr}; // Crear primer nodo de la lista ligada
+        raiz->left = nullptr;
+        raiz->right = nullptr;
+    } else if (puerto < raiz->puerto) {
+        // Ir al subarbol izquierdo
+        insertar(raiz->left, puerto, ip);
+    } else if (puerto > raiz->puerto) {
+        // Ir al subarbol derecho
+        insertar(raiz->right, puerto, ip);
+    } else {
+        // Puerto ya existe, agregar Ip a la lista ligada
+        IpNode* actual = raiz->ipList;
+        while (actual->next != nullptr) {
+            actual = actual->next; // Recorrer hasta el final
+        }
+        actual->next = new IpNode{ip, nullptr}; // Agregar al final
+    }
+}
+
+// CONTAMOS LOS NODOOOOS
+int contarNodos(NodoBST* raiz) {
+    if (raiz == nullptr) {
+        return 0; // SI NO HAY NADA PUES FUGA
+    }
+    return 1 + contarNodos(raiz->left) + contarNodos(raiz->right); // TRATAMOS CON LOS OTROS ARBOLES
+}
+
+// CONTAMOS LAS IPS PARA CADA NODO
+int contarIps(IpNode* lista) {
+    int count = 0;
+    while (lista != nullptr) {
+        count++; // CONTADOR
+        lista = lista->next;
+    }
+    return count;
+}
+
+// RECOPILAMOS LOS DATOS DE LOS PUERTOS EN UN ARRAY
+void recopilarTop(NodoBST* raiz, TopPuerto* arr, int& indice) {
+    if (raiz == nullptr) return;
+    recopilarTop(raiz->left, arr, indice);
+    arr[indice].puerto = raiz->puerto;
+    arr[indice].numIps = contarIps(raiz->ipList);
+    indice++;
+    recopilarTop(raiz->right, arr, indice);
+}
+
+// BUSCAMOS EL NODO POR EL PUERTO
+NodoBST* buscarNodo(NodoBST* raiz, int puerto) {
+    if (raiz == nullptr || raiz->puerto == puerto) return raiz;
+    if (puerto < raiz->puerto) return buscarNodo(raiz->left, puerto);
+    return buscarNodo(raiz->right, puerto);
+}
+
+// MERGE PARA LOS TOPS, SEGUNDA EVIDENCIA
+void mergeTop(TopPuerto arr[], int start, int mid, int end) {
+    int n1 = mid - start + 1;
+    int n2 = end - mid;
+
+    TopPuerto* arregloIzq = new TopPuerto[n1];
+    TopPuerto* arregloDer = new TopPuerto[n2];
+
+    for (int i = 0; i < n1; i++) arregloIzq[i] = arr[start + i];
+    for (int j = 0; j < n2; j++) arregloDer[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = start;
+    while (i < n1 && j < n2) {
+        if (arregloIzq[i].numIps >= arregloDer[j].numIps) {
+            arr[k] = arregloIzq[i];
+            i++;
+        } else {
+            arr[k] = arregloDer[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i < n1) {
+        arr[k] = arregloIzq[i];
+        i++;
+        k++;
+    }
+    while (j < n2) {
+        arr[k] = arregloDer[j];
+        j++;
+        k++;
+    }
+
+    delete[] arregloIzq;
+    delete[] arregloDer;
+}
+
+void mergeSortTop(TopPuerto arr[], int start, int end) {
+    if (start >= end) return;
+    int mid = start + (end - start) / 2;
+    mergeSortTop(arr, start, mid);
+    mergeSortTop(arr, mid + 1, end);
+    mergeTop(arr, start, mid, end);
+}
+
 
 int main(void) {
     //Size de la bitacora como constante para que nadie lo pueda cambiar despues y asi
@@ -301,7 +428,7 @@ int main(void) {
     cout << "Una lista con esos datos ya fue mostrada en un archivo llamada bitacora_ordenada_al_gusto.txt" << endl;
     
     cout << endl;
-    cout << "###### Se cerro este Programa ######" << endl;
+    cout << "EMPEZAMOS CON LA SEGUNDA ENTREGA, DE LA LISTA, TE DARMEOS LOS PUERTOS CON MAS IPS" << endl;
 
     // AQUI EMPIEZA EL SEGUNDO ENTREGABLE
     // COMO TENEMOS LOS DATOS ENCONTRADOS Y ORDENADOS EN UN ARCHIVO .TXT PRIMERO HAREMOS LO QUE HICIMOS LA ANTERIOR VEZ
@@ -311,7 +438,7 @@ int main(void) {
     // PARA EL SIZE VAMOS A USAR EL contador_impresos que ya teniamos, asi que no hay problema
     const int tamBitacora2 = contador_impresos;
 
-    Bitacora arrBitacora2[tamBitacora2];
+    Bitacora* arrBitacora2 = new Bitacora[tamBitacora2];
     int contador2 = 0;
 
     ifstream archivo2;
@@ -359,6 +486,36 @@ int main(void) {
     }
 
     archivo2.close();
+
+    // INICIALIZAMOS Y POBLAMOS EL BST CON DATOS DE arrBitacora2
+    NodoBST* raiz = nullptr;
+    for(int i = 0; i < contador2; i++) {
+        insertar(raiz, arrBitacora2[i].puerto, arrBitacora2[i].ip);
+    }
+
+    // CONTAMOS PUERTOS Y CREAMOS ARRAY PARA TOP
+    int numPuertos = contarNodos(raiz);
+    TopPuerto* topPuertos = new TopPuerto[numPuertos];
+    int indice = 0;
+    recopilarTop(raiz, topPuertos, indice);
+
+    // Ordenar array descendente por numIps
+    mergeSortTop(topPuertos, 0, numPuertos - 1);
+
+    // Mostrar top 5 IPs
+    cout << endl <<  "Top 5 IPs por puertos" << endl;
+    int totalIpsMostradas = 0;
+    for(int i = 0; i < numPuertos && totalIpsMostradas < 5; i++) {
+        int puerto = topPuertos[i].puerto;
+        int numIps = topPuertos[i].numIps;
+        NodoBST* nodo = buscarNodo(raiz, puerto);
+        if (nodo) {
+            cout << "Puerto " << puerto << " con un total de " << numIps << " IPs" << endl;
+        }
+        totalIpsMostradas++;
+    }
+
+    delete[] arrBitacora2;
 
     return 0;
 }
