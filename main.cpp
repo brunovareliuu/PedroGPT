@@ -505,7 +505,7 @@ int main(void) {
     // Mostrar top 5 IPs
     cout << endl <<  "Top 5 IPs por puertos" << endl;
     int totalIpsMostradas = 0;
-    for(int i = 0; i < numPuertos && totalIpsMostradas < 5; i++) {
+    for(int i = 0; i < numPuertos && totalIpsMostradas < 10; i++) {
         int puerto = topPuertos[i].puerto;
         int numIps = topPuertos[i].numIps;
         NodoBST* nodo = buscarNodo(raiz, puerto);
