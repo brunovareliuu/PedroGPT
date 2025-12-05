@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <queue> // NECESARIO PARA EL BFS
-
+// https://github.com/brunovareliuu/PedroGPT 
 using namespace std;
 
 // STRUCTUS
